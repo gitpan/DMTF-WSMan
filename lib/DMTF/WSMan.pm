@@ -4,7 +4,7 @@ use warnings;
 use strict;
 
 use version; 
-our $VERSION = qv('0.03');
+our $VERSION = qv('0.04');
 use LWP;
 use LWP::Authen::Digest;
 use Carp;
@@ -359,7 +359,7 @@ DMTF::WSMan - Implements the WS-Management Protocol
 
 =head1 VERSION
 
-This document describes DMTF::WSMan version 0.03
+This document describes DMTF::WSMan version 0.04
 
 
 =head1 SYNOPSIS

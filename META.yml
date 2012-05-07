@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               DMTF-WSMan
-version:            v0.03
+version:            v0.04
 abstract:           Implements the WS-Management Protocol
 author:
     - Stephen James Hurd <shurd@broadcom.com>

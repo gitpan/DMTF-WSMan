@@ -1,5 +1,8 @@
 Revision history for DMTF-WSMan
 
+0.04  Mon May 7 2012
+       Remove POD and Perl::Critic tests
+
 0.03  Tue Apr 24 2012
        Initial public release.
 
