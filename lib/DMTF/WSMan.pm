@@ -4,9 +4,10 @@ use warnings;
 use strict;
 
 use version; 
-our $VERSION = qv('0.04');
+our $VERSION = qv('0.05');
 use LWP;
 use LWP::Authen::Digest;
+use Data::UUID;
 use Carp;
 
 # Module implementation here
@@ -58,6 +59,7 @@ sub new
 	$self->{Context}{host} = $args{host} if(defined $args{host});
 	$self->{RA} = DMTF::WSMan::PRIVATE::RequestAgent->new($self, keep_alive=>1);
 	$self->{challenge_str}=undef;
+	$self->{UUID} = Data::UUID->new();
 	bless($self, $self->{CLASS});
 	return($self);
 }
@@ -233,7 +235,7 @@ sub get_selectorset_xml
 				$selectorset .= $self->epr_to_xml($epr->{SelectorSet}{$name});
 			}
 			else {
-				$selectorset .= $epr->{SelectorSet}{$name};
+				$selectorset .= _XML_escape($epr->{SelectorSet}{$name});
 			}
 			$selectorset .= "</$self->{Context}{xmlns}{wsman}{prefix}:Selector>\n";
 		}
@@ -264,6 +266,16 @@ EOF
 ################
 # Non-exported #
 ################
+sub _XML_escape
+{
+	my $val=shift;
+	$val=~s/&/&amp;/g;
+	$val=~s/</&lt;/g;
+	$val=~s/"/&quot;/g;
+	$val=~s/'/&apos;/g;
+	return $val;
+}
+
 sub _request
 {
 	my $self=shift;
@@ -288,6 +300,7 @@ sub _genheaders
 		$postdata .= "\n      xmlns:$self->{Context}{xmlns}{$ns}{prefix}=\"$self->{Context}{xmlns}{$ns}{uri}\"";
 	}
 	$postdata .= ">\n";
+	my $uuid=$self->{UUID}->create_str();
 	$postdata .= <<ENDOFREQUEST;
   <$self->{Context}{xmlns}{soap}{prefix}:Header>
     <$self->{Context}{xmlns}{addressing}{prefix}:To>$self->{Context}{protocol}://$self->{Context}{host}:$self->{Context}{port}/wsman</$self->{Context}{xmlns}{addressing}{prefix}:To>
@@ -296,7 +309,7 @@ sub _genheaders
       <$self->{Context}{xmlns}{addressing}{prefix}:Address $self->{Context}{xmlns}{soap}{prefix}:mustUnderstand="true">http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous</$self->{Context}{xmlns}{addressing}{prefix}:Address>
     </$self->{Context}{xmlns}{addressing}{prefix}:ReplyTo>
     <$self->{Context}{xmlns}{addressing}{prefix}:Action $self->{Context}{xmlns}{soap}{prefix}:mustUnderstand="true">$action</$self->{Context}{xmlns}{addressing}{prefix}:Action>
-    <$self->{Context}{xmlns}{addressing}{prefix}:MessageID>uuid:7E8A5F63-C353-4463-8794-BEEE4FF6AFBF</$self->{Context}{xmlns}{addressing}{prefix}:MessageID>$selectorset
+    <$self->{Context}{xmlns}{addressing}{prefix}:MessageID>uuid:$uuid</$self->{Context}{xmlns}{addressing}{prefix}:MessageID>$selectorset
   </$self->{Context}{xmlns}{soap}{prefix}:Header>
 ENDOFREQUEST
 	return($postdata);
@@ -312,18 +325,19 @@ sub _authenticated_request
 
 		$challenge =~ tr/,/;/;  # "," is used to separate auth-params!!
 		($challenge) = HTTP::Headers::Util::split_header_words($challenge);
-		my $scheme = lc(shift(@$challenge));
-		shift(@$challenge); # no value
 		$challenge = { @$challenge };  # make rest into a hash
 		for (keys %$challenge) {       # make sure all keys are lower case
 			$challenge->{lc $_} = delete $challenge->{$_};
 		}
 		my $res;
-		if($scheme =~ /basic/i) {
+		if(exists $challenge->{digest}) {
+			$res=LWP::Authen::Digest->authenticate($self->{RA}, undef, $challenge, undef, $req, undef, undef);
+		}
+		elsif(exists $challenge->{basic}) {
 			$res=LWP::Authen::Basic->authenticate($self->{RA}, undef, $challenge, undef, $req, undef, undef);
 		}
 		else {
-			$res=LWP::Authen::Digest->authenticate($self->{RA}, undef, $challenge, undef, $req, undef, undef);
+			$res=$self->{RA}->request($req);
 		}
 		if($res->code == 401) {
 			$self->{challenge_str}=$res->www_authenticate;
@@ -335,7 +349,7 @@ sub _authenticated_request
 				print "!!!! Unable to authenticate!\n";
 			}
 		}
-		$self->{challenge_str}=$res->previous->www_authenticate if(defined $res->previous);
+		$self->{challenge_str}=$res->previous->www_authenticate if(defined $res->previous && $res->code==200);
 		return($res);
 	}
 	my $res=$self->{RA}->request($req);
@@ -359,7 +373,7 @@ DMTF::WSMan - Implements the WS-Management Protocol
 
 =head1 VERSION
 
-This document describes DMTF::WSMan version 0.04
+This document describes DMTF::WSMan version 0.05
 
 
 =head1 SYNOPSIS
@@ -489,9 +503,11 @@ DMTF::WSMan requires no configuration files or environment variables.
 
 =over
 
-=item LWP                 (part of perl libwww)
+=item L<Data::UUID>          (available from CPAN)
 
-=item LWP::Authen::Digest (part of perl libwww)
+=item L<LWP>                 (part of perl libwww)
+
+=item L<LWP::Authen::Digest> (part of perl libwww)
 
 =back
 

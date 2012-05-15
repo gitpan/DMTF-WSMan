@@ -13,6 +13,7 @@ WriteMakefile(
         'version'    => 0,
         'LWP'        => 0,
         'LWP::Authen::Digest' => 0,
+        'Data::UUID' => 0,
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean               => { FILES => 'DMTF-WSMan-*' },

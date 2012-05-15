@@ -1,4 +1,4 @@
-DMTF-WSMan version 0.04
+DMTF-WSMan version 0.05
 
 The DMTF::WSMan module provides low level access to the WS-Management protocol
 as specified in the DMTF's DSP0226.  This module is intended for use with

@@ -12,6 +12,7 @@ my $builder = Module::Build->new(
         'version'    => 0,
         'LWP'        => 0,
         'LWP::Authen::Digest' => 0,
+        'Data::UUID' => 0,
     },
     add_to_cleanup      => [ 'DMTF-WSMan-*' ],
 );
